@@ -383,7 +383,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-white text-sm">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
-            <span>TrendPulse Insights Platform &copy; {new Date().getFullYear()}</span>
+            <span>TrendPulse Insights Platform &copy; {new Date().getFullYear()} <a href="https://specialtywebdesigns.com" target="_blank">Specialty Web Designs Inc</a></span>
           </div>
           <p className="max-w-md text-center md:text-right leading-relaxed text-slate-500">
             Data provided for research purposes. This app does not store your search queries; all data is cleared when you close the browser tab.
