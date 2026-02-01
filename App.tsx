@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   BarChart3, 
@@ -36,7 +36,6 @@ const App: React.FC = () => {
   const [report, setReport] = useState<MarketReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Clear data on exit
   useEffect(() => {
     const handleUnload = () => {
       setReport(null);
@@ -48,7 +47,7 @@ const App: React.FC = () => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profession.trim()) return;
+    if (!profession.trim() || status === AppState.LOADING) return;
 
     setStatus(AppState.LOADING);
     setError(null);
@@ -58,7 +57,8 @@ const App: React.FC = () => {
       setReport(data);
       setStatus(AppState.RESULTS);
     } catch (err: any) {
-      setError("We encountered an issue analyzing the market data. Please try again with a more specific business category.");
+      console.error("App Search Error:", err);
+      setError(err.message || "We encountered an issue analyzing the market data.");
       setStatus(AppState.ERROR);
     }
   };
@@ -71,48 +71,40 @@ const App: React.FC = () => {
     if (format === 'pdf') {
       const doc = new jsPDF();
       let yPos = 20;
-
       doc.setFontSize(22);
-      doc.setTextColor(0, 160, 233); // Sky blue color
+      doc.setTextColor(0, 160, 233);
       doc.text(`Market Insights: ${report.profession}`, 20, yPos);
       yPos += 15;
-
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Generated on: ${report.generatedAt}`, 20, yPos);
       yPos += 20;
-
       doc.setFontSize(14);
       doc.setTextColor(0);
       doc.text("Executive Summary", 20, yPos);
       yPos += 10;
-
       doc.setFontSize(11);
       const splitSummary = doc.splitTextToSize(report.summary, 170);
       doc.text(splitSummary, 20, yPos);
       yPos += (splitSummary.length * 6) + 10;
-
       doc.setFontSize(14);
       doc.text("Top Trending Keywords", 20, yPos);
       yPos += 10;
-
       doc.setFontSize(10);
       report.topKeywords.forEach((k, i) => {
-        if (yPos > 270) {
+        if (yPos > 280) {
           doc.addPage();
           yPos = 20;
         }
         doc.text(`${i + 1}. ${k.keyword} - Volume: ${k.volume.toLocaleString()} (${k.trend})`, 25, yPos);
         yPos += 6;
       });
-
       doc.save(`${fileName}.pdf`);
       return;
     }
 
     let content = '';
     let mimeType = 'text/plain';
-
     if (format === 'csv') {
       content = "Keyword,Monthly Volume,Trend,YoY Change%\n" + 
                 report.topKeywords.map(k => `"${k.keyword}",${k.volume},${k.trend},${k.changePercentage}%`).join('\n');
@@ -122,7 +114,7 @@ const App: React.FC = () => {
       content = `MARKET ANALYSIS: ${report.profession}\n` +
                 `Generated on: ${report.generatedAt}\n\n` +
                 `EXECUTIVE SUMMARY:\n${report.summary}\n\n` +
-                `TOP KEYWORDS (DESCENDING VOLUME):\n` +
+                `TOP KEYWORDS:\n` +
                 report.topKeywords.map((k, i) => `${i+1}. ${k.keyword} - Volume: ${k.volume} (${k.trend})`).join('\n');
       fileName += '.txt';
     } else {
@@ -142,7 +134,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-sky-500/30">
-      {/* Header */}
       <nav className="sticky top-0 z-50 border-b border-sky-900/50 bg-slate-950/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -159,7 +150,6 @@ const App: React.FC = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        {/* Hero & Search Section */}
         <div className="mb-12 text-center max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
             Level Up Your <span className="text-sky-400 underline decoration-sky-500/30">Small Business</span> Strategy
@@ -191,7 +181,6 @@ const App: React.FC = () => {
           </form>
         </div>
 
-        {/* Loading State */}
         {status === AppState.LOADING && (
           <div className="flex flex-col items-center justify-center py-20 space-y-6">
             <div className="relative">
@@ -205,7 +194,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Error State */}
         {status === AppState.ERROR && (
           <div className="max-w-xl mx-auto bg-red-500/10 border border-red-500/20 rounded-2xl p-6 flex gap-4 items-start">
             <AlertCircle className="w-6 h-6 text-red-500 shrink-0" />
@@ -216,13 +204,12 @@ const App: React.FC = () => {
                 onClick={() => setStatus(AppState.IDLE)}
                 className="text-sm font-semibold text-white underline underline-offset-4 hover:text-red-300 transition"
               >
-                Try a different keyword
+                Try a different keyword or check API settings
               </button>
             </div>
           </div>
         )}
 
-        {/* Initial/Empty State */}
         {status === AppState.IDLE && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
             {[
@@ -239,10 +226,8 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Results Section */}
         {status === AppState.RESULTS && report && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Summary Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 neon-border">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
@@ -259,19 +244,11 @@ const App: React.FC = () => {
                   <button onClick={() => exportData('txt')} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition active:scale-95">
                     <FileText className="w-4 h-4 text-sky-400" /> Report (TXT)
                   </button>
-                  <button onClick={() => exportData('json')} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium transition active:scale-95">
-                    <Download className="w-4 h-4" /> JSON
-                  </button>
                 </div>
               </div>
-
               <div className="prose prose-invert max-w-none">
-                <p className="text-slate-300 text-lg leading-relaxed">
-                  {report.summary}
-                </p>
+                <p className="text-slate-300 text-lg leading-relaxed">{report.summary}</p>
               </div>
-
-              {/* Stats Bar */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 border-t border-slate-800 pt-8">
                 <div className="text-center p-4 bg-slate-950/50 rounded-2xl border border-slate-800/50">
                   <div className="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Keywords Found</div>
@@ -294,7 +271,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Visual Graph Section */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8">
               <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
                 <BarChart3 className="text-sky-500 w-6 h-6" />
@@ -307,7 +283,7 @@ const App: React.FC = () => {
                     <XAxis 
                       dataKey="keyword" 
                       stroke="#475569" 
-                      fontSize={12} 
+                      fontSize={11} 
                       tickLine={false} 
                       axisLine={false} 
                       interval={0}
@@ -326,12 +302,7 @@ const App: React.FC = () => {
                     />
                     <Tooltip 
                       cursor={{ fill: '#1e293b' }}
-                      contentStyle={{ 
-                        backgroundColor: '#0f172a', 
-                        borderColor: '#334155', 
-                        borderRadius: '12px',
-                        color: '#f1f5f9'
-                      }}
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
                       itemStyle={{ color: '#38bdf8' }}
                     />
                     <Bar dataKey="volume" radius={[6, 6, 0, 0]}>
@@ -344,7 +315,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Keywords Table */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden">
               <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Top 50 Ranking Keywords</h3>
@@ -386,7 +356,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Grounding Sources */}
             {report.sources && report.sources.length > 0 && (
               <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Verification Sources</h4>
@@ -410,25 +379,14 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="mt-20 border-t border-slate-900 py-12 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-white text-sm">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
-            <span>
-              TrendPulse Insights Platform &copy; {new Date().getFullYear()}{' '}
-              <a 
-                href="https://specialtywebdesigns.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-sky-400 underline underline-offset-4 transition-colors"
-              >
-                Specialty Web Designs Inc
-              </a>
-            </span>
+            <span>TrendPulse Insights Platform &copy; {new Date().getFullYear()}</span>
           </div>
-          <p className="max-w-md text-center md:text-right leading-relaxed">
-            Data provided is for analysis purposes. Information is automatically cleared when you leave this page to protect your business privacy.
+          <p className="max-w-md text-center md:text-right leading-relaxed text-slate-500">
+            Data provided for research purposes. This app does not store your search queries; all data is cleared when you close the browser tab.
           </p>
         </div>
       </footer>
